@@ -3,34 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <title>Pago con Banorte</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      width: 320px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #d32f2f;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #b71c1c;
+    }
+  </style>
 </head>
+
 <body>
 
+<div class="container">
   <h2>Pago con tarjeta</h2>
 
-  <form action="https://backend-banorte.onrender.com/api/payment/create-order" method="POST">
+  <form id="formPago" method="POST" action="https://backend-banorte.onrender.com/api/payment/3d-secure">
 
-    <label>Nombre:</label><br>
-    <input type="text" name="nombre" required><br><br>
+    <input type="text" name="nombre" placeholder="Nombre completo" required>
 
-    <label>Correo:</label><br>
-    <input type="email" name="correo" required><br><br>
+    <input type="email" name="correo" placeholder="Correo electrónico" required>
 
-    <label>Número de tarjeta:</label><br>
-    <input type="text" name="cardNumber" maxlength="16" required><br><br>
+    <input type="text" name="cardNumber" placeholder="Número de tarjeta" maxlength="16" required>
 
-    <label>Fecha de expiración (MMAA):</label><br>
-    <input type="text" name="cardExp" placeholder="1226" required><br><br>
+    <input type="text" id="cardExp" name="cardExp" placeholder="MM/AA" required>
 
-    <label>CVV:</label><br>
-    <input type="password" name="cvv" maxlength="4" required><br><br>
+    <input type="password" name="cvv" placeholder="CVV" maxlength="4" required>
 
-    <label>Monto:</label><br>
-    <input type="number" name="amount" value="10" required><br><br>
+    <input type="text" name="amount" value="10.00" required>
 
     <button type="submit">Pagar</button>
 
   </form>
+</div>
+
+<script>
+
+  const inputExp = document.getElementById("cardExp");
+
+  inputExp.addEventListener("input", function(e) {
+    let value = e.target.value.replace(/\D/g, "");
+
+    if (value.length >= 3) {
+      value = value.substring(0,2) + "/" + value.substring(2,4);
+    }
+
+    e.target.value = value;
+  });
+
+  
+  document.getElementById("formPago").addEventListener("submit", function(e) {
+    let exp = inputExp.value.replace("/", "");
+
+    if (exp.length !== 4) {
+      alert("Formato inválido. Usa MM/AA");
+      e.preventDefault();
+      return;
+    }
+
+    inputExp.value = exp;
+  });
+</script>
 
 </body>
 </html>
