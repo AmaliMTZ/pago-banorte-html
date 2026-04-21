@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Pago con tarjeta</title>
+<title>Pago seguro</title>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
-  background: #f2f2f2;
+  font-family: Arial;
+  background: #6a1b9a;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -16,56 +16,23 @@ body {
 }
 
 .container {
-  background: #fff;
-  padding: 30px;
-  border-radius: 12px;
-  width: 340px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
 }
 
 input {
   width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  transition: 0.2s;
-}
-
-/* 🔥 toque morado elegante */
-input:focus {
-  border-color: #7b1fa2;
-  box-shadow: 0 0 4px rgba(123,31,162,0.4);
-  outline: none;
+  padding: 10px;
+  margin: 5px 0;
 }
 
 button {
   width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  background: #7b1fa2; /* morado */
+  padding: 10px;
+  background: purple;
   color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-button:hover {
-  background: #4a0072;
-}
-
-#resultado {
-  text-align: center;
-  margin-top: 10px;
-  font-size: 14px;
 }
 </style>
 </head>
@@ -73,71 +40,94 @@ button:hover {
 <body>
 
 <div class="container">
-  <h2>Pago con tarjeta</h2>
+  <h3>Pago</h3>
 
   <form id="formPago">
 
-    <input name="nombre" placeholder="Nombre completo" required>
-    <input name="correo" placeholder="Correo electrónico" required>
-    <input name="cardNumber" placeholder="Número de tarjeta" required>
-    <input id="cardExp" name="cardExp" placeholder="MM/AA" required>
-    <input name="cvv" placeholder="CVV" required>
-    <input name="amount" value="10.00" required>
+    <input name="nombre" placeholder="Nombre" required>
+    <input name="correo" placeholder="Correo" required>
+
+    <!--  tarjeta limitada -->
+    <input id="cardNumber" placeholder="Tarjeta" maxlength="16" required>
+
+    <!--  mantiene / -->
+    <input id="cardExp" placeholder="MM/AA" maxlength="5" required>
+
+    <!-- oculto -->
+    <input id="cvv" type="password" placeholder="CVV" maxlength="3" required>
+
+    <input id="amount" placeholder="Monto" required>
 
     <button type="submit">Pagar</button>
 
   </form>
-
-  <p id="resultado"></p>
 </div>
 
 <script>
-const form = document.getElementById("formPago");
-const inputExp = document.getElementById("cardExp");
-const resultado = document.getElementById("resultado");
+window.onload = () => {
 
-// formato MM/AA
-inputExp.addEventListener("input", function(e) {
-  let value = e.target.value.replace(/\D/g, "");
-  if (value.length >= 3) {
-    value = value.substring(0,2) + "/" + value.substring(2,4);
-  }
-  e.target.value = value;
-});
+  const form = document.getElementById("formPago");
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+  // formato MM/AA automático
+  const expInput = document.getElementById("cardExp");
 
-  const exp = inputExp.value.replace("/", "");
+  expInput.addEventListener("input", (e) => {
+    let val = e.target.value.replace(/\D/g, "");
+    if (val.length >= 3) {
+      val = val.slice(0,2) + "/" + val.slice(2,4);
+    }
+    e.target.value = val;
+  });
 
-  const data = {
-    nombre: form.nombre.value,
-    correo: form.correo.value,
-    cardNumber: form.cardNumber.value,
-    cardExp: exp,
-    cvv: form.cvv.value,
-    amount: form.amount.value
-  };
+  form.onsubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const res = await fetch("https://backend-banorte.onrender.com/api/payment/3d-secure", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+    const cardNumber = document.getElementById("cardNumber").value;
+    const cvv = document.getElementById("cvv").value;
 
-    const response = await res.json();
-
-    if (response.success) {
-      resultado.innerText = "Procesando pago...";
-    } else {
-      resultado.innerText = "Error: " + response.message;
+    // validaciones frontend
+    if (cardNumber.length !== 16) {
+      alert("La tarjeta debe tener 16 dígitos");
+      return;
     }
 
-  } catch (error) {
-    resultado.innerText = "Error de conexión";
-  }
-});
+    if (cvv.length !== 3) {
+      alert("CVV inválido");
+      return;
+    }
+
+    const data = {
+      nombre: form.nombre.value,
+      correo: form.correo.value,
+      cardNumber,
+      cardExp: document.getElementById("cardExp").value.replace("/", ""),
+      cvv,
+      amount: document.getElementById("amount").value
+    };
+
+    try {
+      const res = await fetch("/api/payment/3d-secure", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+      const html = await res.text();
+
+      // CORRECTO para Banorte
+      const newWindow = window.open();
+      newWindow.document.open();
+      newWindow.document.write(html);
+      newWindow.document.close();
+
+    } catch (error) {
+      alert("Error al procesar pago");
+    }
+  };
+
+};
 </script>
 
 </body>
